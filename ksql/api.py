@@ -60,7 +60,12 @@ class BaseAPI(object):
 
         for chunk in r.iter_content(chunk_size=chunk_size):
             if chunk != b'\n':
-                yield chunk.decode(encoding)
+                # this probably needs to change - you need the entire json doc
+                # to deserialize it obviously, so the chunk_size has to be at
+                # least as large as the largest doc we expect to receive
+                # (which right now, the largest docs are usually errors with
+                # stack traces in them, not actual valid rows)
+                yield json.loads(chunk.decode(encoding))
 
     def _request(self, endpoint, method='post', sql_string=''):
         url = '{}/{}'.format(self.url, endpoint)
