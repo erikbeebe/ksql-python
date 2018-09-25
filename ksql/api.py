@@ -40,8 +40,8 @@ class BaseAPI(object):
             r = 'Message: ' + r[0]['error']['errorMessage']['message']
             raise CreateError(r)
 
-    def ksql(self, ksql_string):
-        r = self._request(endpoint='ksql', sql_string=ksql_string)
+    def ksql(self, ksql_string, streams_properties={}):
+        r = self._request(endpoint='ksql', sql_string=ksql_string, streams_properties=streams_properties)
 
         if r.status_code == 200:
             r = r.json()
@@ -51,23 +51,29 @@ class BaseAPI(object):
                 'Status Code: {}.\nMessage: {}'.format(
                     r.status_code, r.content))
 
-    def query(self, query_string, encoding='utf-8', chunk_size=128):
+    def query(self, query_string, encoding='utf-8', chunk_size=128, streams_properties={}):
         """
         Process streaming incoming data.
 
         """
-        r = self._request(endpoint='query', sql_string=query_string)
+        r = self._request(endpoint='query', sql_string=query_string, streams_properties=streams_properties)
 
         for chunk in r.iter_content(chunk_size=chunk_size):
             if chunk != b'\n':
-                yield chunk.decode(encoding)
+                # this probably needs to change - you need the entire json doc
+                # to deserialize it obviously, so the chunk_size has to be at
+                # least as large as the largest doc we expect to receive
+                # (which right now, the largest docs are usually errors with
+                # stack traces in them, not actual valid rows)
+                yield json.loads(chunk.decode(encoding))
 
-    def _request(self, endpoint, method='post', sql_string=''):
+    def _request(self, endpoint, method='post', sql_string='', streams_properties={}):
         url = '{}/{}'.format(self.url, endpoint)
 
         sql_string = self._validate_sql_string(sql_string)
         data = json.dumps({
-            "ksql": sql_string
+            "ksql": sql_string,
+            "streamsProperties": streams_properties
         })
 
         headers = {
