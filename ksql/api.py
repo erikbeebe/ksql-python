@@ -43,13 +43,7 @@ class BaseAPI(object):
     def ksql(self, ksql_string, streams_properties={}):
         r = self._request(endpoint='ksql', sql_string=ksql_string, streams_properties=streams_properties)
 
-        if r.status_code == 200:
-            r = r.json()
-            return r
-        else:
-            raise ValueError(
-                'Status Code: {}.\nMessage: {}'.format(
-                    r.status_code, r.content))
+        return r.json()
 
     def query(self, query_string, encoding='utf-8', chunk_size=128, streams_properties={}):
         """
